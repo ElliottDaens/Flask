@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Le bloc title permet à chaque page de définir son propre titre -->
+    <title>{% block title %}Elliott Daens{% endblock %}</title>
+    <!-- url_for('static', ...) génère l'URL du fichier CSS (ex: /static/css/style.css) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        (function() {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <h1>Elliott <span>Daens</span></h1>
+            <div class="nav-right">
+                <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Basculer mode clair / sombre" title="Mode sombre / clair">
+                    <span class="theme-icon theme-icon-sun">☀️</span>
+                    <span class="theme-icon theme-icon-moon">🌙</span>
+                    <span class="theme-label"></span>
+                </button>
+                <ul>
+                    <li><a href="{{ url_for('home') }}">Accueil</a></li>
+                    <li><a href="{{ url_for('galerie') }}">Galerie</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <!-- Chaque page (index, galerie) remplit ce bloc "content" -->
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Elliott Daens</p>
+        </div>
+    </footer>
+    <script>
+        (function() {
+            var toggle = document.getElementById('theme-toggle');
+            var label = toggle && toggle.querySelector('.theme-label');
+            function updateUI() {
+                var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                if (label) label.textContent = isDark ? ' Clair' : ' Sombre';
+                toggle.classList.toggle('is-dark', isDark);
+            }
+            if (toggle) {
+                toggle.addEventListener('click', function() {
+                    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    var next = isDark ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('theme', next);
+                    updateUI();
+                });
+                updateUI();
+            }
+        })();
+    </script>
+</body>
+</html>

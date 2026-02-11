@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{# Galerie type explorateur : on choisit un dossier, les photos qu'il contient s'affichent. #}
+
+{% block title %}Galerie - Elliott Daens{% endblock %}
+
+{% block content %}
+<section class="galerie-section">
+    <h1 class="page-header">Galerie</h1>
+    <p class="galerie-intro">Le site scanne ton ordinateur (dossier utilisateur). Choisis un dossier dans la liste : seuls les dossiers qui contiennent des images apparaissent. Les photos du dossier sélectionné s'affichent ci-dessous.</p>
+
+    {% if dossiers %}
+    <div class="galerie-controles">
+        <label for="select-dossier">Dossier :</label>
+        <select id="select-dossier" onchange="changerDossier(this.value)">
+            {% for d in dossiers %}
+            <option value="{{ d }}" {% if d == dossier_choisi %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+        </select>
+        <a href="{{ url_for('galerie', rafraichir=1) }}" class="galerie-rafraichir">Rafraîchir la liste</a>
+    </div>
+
+    <div class="galerie-affichage">
+        {% if images %}
+        <div class="miniatures">
+            {% for img in images %}
+            <img src="{{ url_for('fichier_galerie', chemin_relatif=dossier_choisi ~ '/' ~ img) }}"
+                 alt="{{ img }}"
+                 class="miniature"
+                 onclick="afficherGrandeImage(this.src)">
+            {% endfor %}
+        </div>
+        <div class="cadre-grande-image">
+            <p class="indication">Cliquez sur une miniature pour l'afficher ici.</p>
+            <img id="grande-image" src="{{ url_for('fichier_galerie', chemin_relatif=dossier_choisi ~ '/' ~ images[0]) }}" alt="Image sélectionnée" style="display: block;">
+        </div>
+        {% else %}
+        <p class="message-vide">Aucune image dans ce dossier.</p>
+        {% endif %}
+    </div>
+    {% else %}
+    <p class="message-vide">Aucun dossier avec des photos trouvé sous ton dossier utilisateur. Mets des images (jpg, png, gif, webp) dans n'importe quel sous-dossier de ton PC, ils apparaîtront ici au prochain chargement.</p>
+    {% endif %}
+</section>
+
+<script>
+function changerDossier(d) {
+    if (d) window.location.href = '{{ url_for("galerie") }}?dossier=' + encodeURIComponent(d);
+}
+function afficherGrandeImage(src) {
+    document.getElementById('grande-image').src = src;
+    document.getElementById('grande-image').style.display = 'block';
+    var indication = document.querySelector('.indication');
+    if (indication) indication.style.display = 'none';
+}
+</script>
+{% endblock %}

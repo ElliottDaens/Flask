@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil - {{ prenom }} {{ nom }}{% endblock %}
+
+{% block content %}
+<section class="page-perso">
+    <h1 class="page-header">Bienvenue</h1>
+
+    <div class="profil-card">
+        {% if photo_profil %}
+        <div class="profil-photo">
+            <img src="{{ url_for('static', filename='images/' ~ photo_profil) }}" alt="Photo de profil">
+        </div>
+        {% endif %}
+        <div class="profil-texte">
+            <h2>{{ prenom }} {{ nom }}</h2>
+            {% if sous_titre %}<p class="sous-titre">{{ sous_titre }}</p>{% endif %}
+            {% if localisation %}<p class="localisation">{{ localisation }}</p>{% endif %}
+            <p class="presentation">{{ presentation }}</p>
+
+            {% if map_lat is defined and map_lon is defined %}
+            <div class="carte-localisation">
+                <h3>Où me trouver</h3>
+                <div id="map" data-lat="{{ map_lat }}" data-lon="{{ map_lon }}" data-zoom="{{ map_zoom | default(5) }}" data-label="{{ map_label | default(localisation) }}"></div>
+            </div>
+            {% endif %}
+
+            {% if technologies %}
+            <h3>Technologies & outils</h3>
+            <div class="technologies">
+                {% for categorie, items in technologies.items() %}
+                <div class="tech-groupe">
+                    <span class="tech-categorie">{{ categorie }}</span>
+                    <ul class="tech-list">
+                        {% for item in items %}<li>{{ item }}</li>{% endfor %}
+                    </ul>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <h3>Centres d'intérêt</h3>
+            <ul class="centres-interet">
+                {% for interet in centres_interet %}
+                <li>{{ interet }}</li>
+                {% endfor %}
+            </ul>
+
+            {% if en_apprentissage %}
+            <h3>En apprentissage</h3>
+            <ul class="en-apprentissage">
+                {% for item in en_apprentissage %}<li>{{ item }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if liens %}
+            <h3>Me contacter</h3>
+            <div class="liens-profil">
+                {% for nom, url in liens.items() %}
+                <a href="{{ url }}" class="lien-profil" target="_blank" rel="noopener">{{ nom }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <p class="lien-galerie">
+        <a href="{{ url_for('galerie') }}" class="btn">Voir la galerie d'images</a>
+    </p>
+</section>
+
+{% if map_lat is defined and map_lon is defined %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(function() {
+    var mapEl = document.getElementById('map');
+    if (!mapEl) return;
+    var lat = parseFloat(mapEl.dataset.lat);
+    var lon = parseFloat(mapEl.dataset.lon);
+    var zoom = parseInt(mapEl.dataset.zoom, 10) || 5;
+    var label = mapEl.dataset.label || '';
+    var map = L.map('map').setView([lat, lon], zoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    L.marker([lat, lon]).addTo(map).bindPopup(label).openPopup();
+})();
+</script>
+{% endif %}
+{% endblock %}
