@@ -1,15 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-Application Flask : site perso + galerie type explorateur (scan du PC)
+Application Flask : site perso + galerie type explorateur (scan du PC) + segmentation K-means.
 Chaque utilisateur qui lance le site voit les dossiers et photos sur sa propre machine.
 """
 
 import os
 import time
+import uuid
 from collections import deque
-from flask import Flask, render_template, request, send_file, abort
+from flask import Flask, render_template, request, send_file, abort, url_for
+
+import numpy as np
+from PIL import Image
+from sklearn.cluster import KMeans
 
 app = Flask(__name__)
+
+# Dossier où sauvegarder les images segmentées (sous static/)
+SEGMENTED_DIR = os.path.join(os.path.dirname(__file__), 'static', 'segmented')
+MAX_SIZE_SEGMENTATION = 800  # taille max (côté) pour accélérer le K-means
 
 # Racine du scan : dossier utilisateur par défaut.
 RACINE_SCAN = os.path.expanduser("~")
@@ -129,18 +138,64 @@ def get_dossiers_avec_photos(use_cache=True):
     return paires
 
 
+def segmenter_image(chemin_absolu, k, max_size=MAX_SIZE_SEGMENTATION):
+    """
+    Segmente une image avec K-means sur les couleurs RGB.
+    Retourne le chemin du fichier segmenté sauvegardé sous static/segmented/.
+    """
+    os.makedirs(SEGMENTED_DIR, exist_ok=True)
+    im = Image.open(chemin_absolu).convert('RGB')
+    arr = np.array(im)
+    h, w, _ = arr.shape
+    if max(h, w) > max_size:
+        im.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+        arr = np.array(im)
+        h, w, _ = arr.shape
+    pixels = arr.reshape(-1, 3).astype(np.float64)
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10, max_iter=300)
+    kmeans.fit(pixels)
+    centres = kmeans.cluster_centers_.round().astype(np.uint8)
+    seg = centres[kmeans.labels_].reshape(h, w, 3)
+    nom = f"seg_{uuid.uuid4().hex[:12]}.png"
+    chemin_sortie = os.path.join(SEGMENTED_DIR, nom)
+    Image.fromarray(seg).save(chemin_sortie)
+    return nom
+
+
+def _url_carte_embed(lat, lon, zoom=17):
+    """
+    Construit l'URL d'intégration OpenStreetMap (iframe) à partir des coordonnées.
+    Tout le calcul est fait en Python, pas de JavaScript côté page.
+    """
+    from urllib.parse import urlencode
+    n = 2 ** zoom
+    delta_lon = 360.0 / n
+    delta_lat = 180.0 / n
+    min_lon = lon - delta_lon / 2
+    max_lon = lon + delta_lon / 2
+    min_lat = lat - delta_lat / 2
+    max_lat = lat + delta_lat / 2
+    bbox = f"{min_lon},{min_lat},{max_lon},{max_lat}"
+    params = {"bbox": bbox, "layer": "mapnik", "marker": f"{lat},{lon}"}
+    return "https://www.openstreetmap.org/export/embed.html?" + urlencode(params)
+
+
 # ========== ROUTE 1 : Page d'accueil (site perso) ==========
 @app.route('/')
 def home():
+    map_lat = 50.952644
+    map_lon = 1.877985
+    map_zoom = 17
     donnees_perso = {
         'prenom': 'Elliott',
         'nom': 'Daens',
         'sous_titre': 'Développeur en formation · Passionné tech',
         'localisation': 'Calais, Côte d\'Opale',
-        'map_lat': 50.952644,
-        'map_lon': 1.877985,
-        'map_zoom': 17,
+        'map_lat': map_lat,
+        'map_lon': map_lon,
+        'map_zoom': map_zoom,
         'map_label': 'ULCO Calais — 50 Rue Ferdinand Buisson, 62100 Calais, France',
+        'map_embed_url': _url_carte_embed(map_lat, map_lon, map_zoom),
         'presentation': (
             "Je maîtrise les technologies frontend et backend et j'ai un intérêt particulier "
             "pour Docker et la création / maintenance de serveur (NAS, etc.). "
@@ -199,6 +254,75 @@ def galerie():
         dossiers=dossiers,
         dossier_choisi=dossier_choisi,
         images=images,
+    )
+
+
+# ========== ROUTE 3 : Segmentation d'image (K-means couleurs) ==========
+@app.route('/segmentation', methods=['GET', 'POST'])
+def segmentation():
+    global _CACHE_PAIRES, _CACHE_TIME
+    if request.args.get('rafraichir'):
+        _CACHE_PAIRES = None
+    paires = get_dossiers_avec_photos(use_cache=True)
+    dossiers = [p[0] for p in paires]
+    dossier_choisi = request.values.get('dossier', '').strip().replace("\\", "/")
+    if dossier_choisi not in dossiers and dossiers:
+        dossier_choisi = dossiers[0]
+    elif not dossiers:
+        dossier_choisi = None
+
+    images = []
+    if dossier_choisi:
+        for rel, imgs in paires:
+            if rel == dossier_choisi:
+                images = imgs
+                break
+
+    result_original_url = None
+    result_segmentee_url = None
+    image_choisie = None
+    k_utilise = 10
+    erreur = None
+
+    if request.method == 'POST':
+        dossier_form = (request.form.get('dossier') or '').strip().replace("\\", "/")
+        if dossier_form in dossiers:
+            dossier_choisi = dossier_form
+            images = next((imgs for rel, imgs in paires if rel == dossier_choisi), [])
+        img_name = (request.form.get('image') or '').strip()
+        try:
+            k = int(request.form.get('k', 10))
+            k = max(2, min(50, k))
+        except (TypeError, ValueError):
+            k = 10
+        if not img_name or not dossier_choisi:
+            erreur = "Choisis un dossier et une image."
+        else:
+            chemin_relatif = f"{dossier_choisi}/{img_name}".replace("\\", "/")
+            parties = [p for p in chemin_relatif.split("/") if p]
+            chemin_absolu = os.path.join(RACINE_SCAN, *parties)
+            if not _chemin_autorise(chemin_absolu) or not os.path.isfile(chemin_absolu) or not _fichier_image(img_name):
+                erreur = "Image non autorisée ou introuvable."
+            else:
+                try:
+                    nom_seg = segmenter_image(chemin_absolu, k)
+                    result_original_url = url_for('fichier_galerie', chemin_relatif=chemin_relatif)
+                    result_segmentee_url = url_for('static', filename=f'segmented/{nom_seg}')
+                    image_choisie = img_name
+                    k_utilise = k
+                except Exception as e:
+                    erreur = f"Erreur lors de la segmentation : {e}"
+
+    return render_template(
+        'segmentation.html',
+        dossiers=dossiers,
+        dossier_choisi=dossier_choisi,
+        images=images,
+        result_original_url=result_original_url,
+        result_segmentee_url=result_segmentee_url,
+        image_choisie=image_choisie,
+        k_utilise=k_utilise,
+        erreur=erreur,
     )
 
 

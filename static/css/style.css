@@ -292,7 +292,14 @@ main {
     margin-bottom: 0.75rem;
 }
 
-#map {
+.carte-localisation .map-label {
+    color: var(--gris);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+#map,
+.carte-localisation iframe {
     width: 100%;
     height: 240px;
     border-radius: var(--radius-md);
@@ -302,6 +309,7 @@ main {
     box-shadow: var(--shadow-sm);
 }
 
+/* Styles Leaflet (si carte en JS réactivée) */
 #map .leaflet-popup-content-wrapper {
     border-radius: var(--radius-sm);
     border: 1px solid var(--rouge);
@@ -608,6 +616,141 @@ main {
     padding: 0.3rem 0.65rem;
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
+}
+
+/* ========== Segmentation ========== */
+.segmentation-section {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.segmentation-intro {
+    text-align: center;
+    color: var(--gris);
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.segmentation-form {
+    margin-bottom: 1.5rem;
+}
+
+.segmentation-controles {
+    background: var(--blanc);
+    padding: 1.25rem 1.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--bordure);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+}
+
+.segmentation-controles .controle-groupe {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.segmentation-controles .controle-groupe label {
+    font-weight: 600;
+    color: var(--noir);
+    font-size: 0.9rem;
+}
+
+.segmentation-controles select,
+.segmentation-controles input[type="number"] {
+    padding: 0.55rem 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--bordure);
+    border-radius: var(--radius-sm);
+    min-width: 180px;
+    color: var(--noir);
+    background-color: var(--blanc);
+}
+
+.segmentation-controles input[type="number"] {
+    width: 5rem;
+}
+
+[data-theme="dark"] .segmentation-controles select,
+[data-theme="dark"] .segmentation-controles input[type="number"] {
+    color: #e8e8e8;
+    background-color: #2a2a2a;
+    border-color: #444;
+}
+
+.bouton-segmenter {
+    padding: 0.65rem 1.5rem;
+    background: var(--rouge);
+    color: var(--blanc);
+    border: 2px solid var(--rouge);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition), transform var(--transition);
+}
+
+.bouton-segmenter:hover {
+    background: var(--rouge-hover);
+    border-color: var(--rouge-hover);
+    transform: translateY(-2px);
+}
+
+.segmentation-erreur {
+    color: #c41e3a;
+    background: var(--rouge-light);
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+}
+
+.segmentation-resultats {
+    background: var(--blanc);
+    padding: 2rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--bordure);
+    box-shadow: var(--shadow-md);
+    margin-top: 1.5rem;
+}
+
+.segmentation-resultats h2 {
+    margin-bottom: 1.25rem;
+    font-size: 1.35rem;
+    color: var(--noir);
+}
+
+.deux-images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.bloc-image h3 {
+    font-size: 1rem;
+    color: var(--gris);
+    margin-bottom: 0.75rem;
+}
+
+.image-seg {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--bordure);
+    box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+    .deux-images {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ========== Content box (legacy / autres pages) ========== */

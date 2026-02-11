@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{# Page segmentation : choix d'une image + nombre de couleurs K, affichage image originale vs image segmentée (K-means). #}
+
+{% block title %}Segmentation - Elliott Daens{% endblock %}
+
+{% block content %}
+<section class="segmentation-section">
+    <h1 class="page-header">Segmentation d'image</h1>
+    <p class="segmentation-intro">Choisis un dossier et une image, puis le nombre de couleurs (clusters) pour obtenir une version segmentée de l'image. L'algorithme K-means regroupe les couleurs RGB pour réduire la palette.</p>
+
+    {% if dossiers %}
+    <form method="post" action="{{ url_for('segmentation') }}" class="segmentation-form">
+        <div class="segmentation-controles">
+            <div class="controle-groupe">
+                <label for="dossier">Dossier :</label>
+                <select id="dossier" name="dossier" onchange="changerDossier(this.value)">
+                    {% for d in dossiers %}
+                    <option value="{{ d }}" {% if d == dossier_choisi %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="controle-groupe">
+                <label for="image">Image :</label>
+                <select id="image" name="image" required>
+                    <option value="">— Choisir une image —</option>
+                    {% for img in images %}
+                    <option value="{{ img }}" {% if image_choisie == img %}selected{% endif %}>{{ img }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="controle-groupe">
+                <label for="k">Nombre de couleurs (K) :</label>
+                <input type="number" id="k" name="k" value="{{ k_utilise }}" min="2" max="50" step="1">
+            </div>
+            <div class="controle-groupe contient-bouton">
+                <button type="submit" class="bouton-segmenter">Segmenter l'image</button>
+            </div>
+        </div>
+        <a href="{{ url_for('segmentation', rafraichir=1) }}" class="galerie-rafraichir">Rafraîchir la liste des dossiers</a>
+    </form>
+
+    {% if erreur %}
+    <p class="segmentation-erreur">{{ erreur }}</p>
+    {% endif %}
+
+    {% if result_original_url and result_segmentee_url %}
+    <div class="segmentation-resultats">
+        <h2>Résultat</h2>
+        <div class="deux-images">
+            <div class="bloc-image">
+                <h3>Image originale</h3>
+                <img src="{{ result_original_url }}" alt="Originale" class="image-seg">
+            </div>
+            <div class="bloc-image">
+                <h3>Image segmentée</h3>
+                <img src="{{ result_segmentee_url }}" alt="Segmentée" class="image-seg">
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="message-vide">Aucun dossier avec des photos trouvé. Mets des images dans ton dossier utilisateur pour les faire apparaître ici.</p>
+    {% endif %}
+</section>
+
+<script>
+function changerDossier(d) {
+    if (d) window.location.href = '{{ url_for("segmentation") }}?dossier=' + encodeURIComponent(d);
+}
+</script>
+{% endblock %}

@@ -18,10 +18,19 @@
             {% if localisation %}<p class="localisation">{{ localisation }}</p>{% endif %}
             <p class="presentation">{{ presentation }}</p>
 
-            {% if map_lat is defined and map_lon is defined %}
+            {% if map_embed_url is defined and map_embed_url %}
             <div class="carte-localisation">
                 <h3>Où me trouver</h3>
-                <div id="map" data-lat="{{ map_lat }}" data-lon="{{ map_lon }}" data-zoom="{{ map_zoom | default(5) }}" data-label="{{ map_label | default(localisation) }}"></div>
+                {% if map_label %}<p class="map-label">{{ map_label }}</p>{% endif %}
+                <iframe
+                    title="Carte de localisation"
+                    src="{{ map_embed_url }}"
+                    width="100%"
+                    height="350"
+                    style="border: 0; border-radius: 12px;"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                ></iframe>
             </div>
             {% endif %}
 
@@ -69,23 +78,4 @@
     </p>
 </section>
 
-{% if map_lat is defined and map_lon is defined %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script>
-(function() {
-    var mapEl = document.getElementById('map');
-    if (!mapEl) return;
-    var lat = parseFloat(mapEl.dataset.lat);
-    var lon = parseFloat(mapEl.dataset.lon);
-    var zoom = parseInt(mapEl.dataset.zoom, 10) || 5;
-    var label = mapEl.dataset.label || '';
-    var map = L.map('map').setView([lat, lon], zoom);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
-    L.marker([lat, lon]).addTo(map).bindPopup(label).openPopup();
-})();
-</script>
-{% endif %}
 {% endblock %}

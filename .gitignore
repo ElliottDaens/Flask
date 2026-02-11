@@ -34,6 +34,9 @@ instance/
 *.swo
 *~
 
+# Images segmentées (générées par l'app)
+static/segmented/
+
 # OS
 .DS_Store
 Thumbs.db
