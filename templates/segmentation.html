@@ -6,10 +6,10 @@
 {% block content %}
 <section class="segmentation-section">
     <h1 class="page-header">Segmentation d'image</h1>
-    <p class="segmentation-intro">Choisis un dossier et une image, puis le nombre de couleurs (clusters) pour obtenir une version segmentée de l'image. L'algorithme K-means regroupe les couleurs RGB pour réduire la palette.</p>
+    <p class="segmentation-intro">Choisis un dossier et une image dans les listes, <strong>ou</strong> un fichier sur ton ordinateur avec « Choisir un fichier », puis le nombre de couleurs (K) pour obtenir une version segmentée. L'algorithme K-means regroupe les couleurs RGB pour réduire la palette.</p>
 
     {% if dossiers %}
-    <form method="post" action="{{ url_for('segmentation') }}" class="segmentation-form">
+    <form method="post" action="{{ url_for('segmentation') }}" class="segmentation-form" enctype="multipart/form-data">
         <div class="segmentation-controles">
             <div class="controle-groupe">
                 <label for="dossier">Dossier :</label>
@@ -21,12 +21,16 @@
             </div>
             <div class="controle-groupe">
                 <label for="image">Image :</label>
-                <select id="image" name="image" required>
+                <select id="image" name="image">
                     <option value="">— Choisir une image —</option>
                     {% for img in images %}
                     <option value="{{ img }}" {% if image_choisie == img %}selected{% endif %}>{{ img }}</option>
                     {% endfor %}
                 </select>
+            </div>
+            <div class="controle-groupe controle-fichier">
+                <label for="fichier">Ou choisir un fichier :</label>
+                <input type="file" id="fichier" name="fichier" accept="image/jpeg,image/png,image/gif,image/webp,image/*">
             </div>
             <div class="controle-groupe">
                 <label for="k">Nombre de couleurs (K) :</label>
@@ -59,7 +63,32 @@
     </div>
     {% endif %}
     {% else %}
-    <p class="message-vide">Aucun dossier avec des photos trouvé. Mets des images dans ton dossier utilisateur pour les faire apparaître ici.</p>
+    <p class="message-vide">Aucun dossier avec des photos trouvé. Tu peux quand même segmenter une image en la choisissant ci-dessous.</p>
+    <form method="post" action="{{ url_for('segmentation') }}" class="segmentation-form" enctype="multipart/form-data">
+        <div class="segmentation-controles">
+            <div class="controle-groupe controle-fichier">
+                <label for="fichier-sans-dossier">Choisir un fichier :</label>
+                <input type="file" id="fichier-sans-dossier" name="fichier" accept="image/jpeg,image/png,image/gif,image/webp,image/*">
+            </div>
+            <div class="controle-groupe">
+                <label for="k-sans-dossier">Nombre de couleurs (K) :</label>
+                <input type="number" id="k-sans-dossier" name="k" value="{{ k_utilise }}" min="2" max="50" step="1">
+            </div>
+            <div class="controle-groupe contient-bouton">
+                <button type="submit" class="bouton-segmenter">Segmenter l'image</button>
+            </div>
+        </div>
+    </form>
+    {% if erreur %}<p class="segmentation-erreur">{{ erreur }}</p>{% endif %}
+    {% if result_original_url and result_segmentee_url %}
+    <div class="segmentation-resultats">
+        <h2>Résultat</h2>
+        <div class="deux-images">
+            <div class="bloc-image"><h3>Image originale</h3><img src="{{ result_original_url }}" alt="Originale" class="image-seg"></div>
+            <div class="bloc-image"><h3>Image segmentée</h3><img src="{{ result_segmentee_url }}" alt="Segmentée" class="image-seg"></div>
+        </div>
+    </div>
+    {% endif %}
     {% endif %}
 </section>
 

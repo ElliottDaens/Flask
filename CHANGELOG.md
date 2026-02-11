@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.0] – 2026-02-11
+
+### Ajouté
+- **Segmentation** : bouton « Choisir un fichier » pour uploader une image depuis l’ordinateur (en plus du choix par dossier/liste). Fichiers enregistrés dans `static/uploads/`.
+
+### Modifié
+- **Charte visuelle** : accents **violets** à la place du rouge (variables `--accent`, `--accent-hover`, `--accent-light`).
+- **Animations** : apparition en fondu (fadeInUp, scaleIn), transitions sur les boutons, cartes, miniatures, liens ; courbes d’easing (`--ease-out`).
+
 ## [1.1.0] – 2026-02-11
 
 ### Ajouté

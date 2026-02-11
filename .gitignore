@@ -34,8 +34,9 @@ instance/
 *.swo
 *~
 
-# Images segmentées (générées par l'app)
+# Images segmentées et uploads (générés par l'app)
 static/segmented/
+static/uploads/
 
 # OS
 .DS_Store

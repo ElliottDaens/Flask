@@ -16,8 +16,9 @@ from sklearn.cluster import KMeans
 
 app = Flask(__name__)
 
-# Dossier où sauvegarder les images segmentées (sous static/)
+# Dossiers pour la segmentation (sous static/)
 SEGMENTED_DIR = os.path.join(os.path.dirname(__file__), 'static', 'segmented')
+UPLOADS_DIR = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 MAX_SIZE_SEGMENTATION = 800  # taille max (côté) pour accélérer le K-means
 
 # Racine du scan : dossier utilisateur par défaut.
@@ -295,9 +296,31 @@ def segmentation():
             k = max(2, min(50, k))
         except (TypeError, ValueError):
             k = 10
-        if not img_name or not dossier_choisi:
-            erreur = "Choisis un dossier et une image."
-        else:
+
+        fichier_upload = request.files.get('fichier')
+        utiliser_upload = fichier_upload and fichier_upload.filename and _fichier_image(fichier_upload.filename)
+
+        if utiliser_upload:
+            os.makedirs(UPLOADS_DIR, exist_ok=True)
+            ext = os.path.splitext(fichier_upload.filename)[1].lower() or '.jpg'
+            if ext not in EXTENSIONS_IMAGES:
+                ext = '.jpg'
+            nom_upload = f"up_{uuid.uuid4().hex[:12]}{ext}"
+            chemin_upload = os.path.join(UPLOADS_DIR, nom_upload)
+            try:
+                fichier_upload.save(chemin_upload)
+                nom_seg = segmenter_image(chemin_upload, k)
+                result_original_url = url_for('static', filename=f'uploads/{nom_upload}')
+                result_segmentee_url = url_for('static', filename=f'segmented/{nom_seg}')
+                k_utilise = k
+            except Exception as e:
+                erreur = f"Erreur lors de la segmentation : {e}"
+                if os.path.isfile(chemin_upload):
+                    try:
+                        os.remove(chemin_upload)
+                    except OSError:
+                        pass
+        elif img_name and dossier_choisi:
             chemin_relatif = f"{dossier_choisi}/{img_name}".replace("\\", "/")
             parties = [p for p in chemin_relatif.split("/") if p]
             chemin_absolu = os.path.join(RACINE_SCAN, *parties)
@@ -312,6 +335,8 @@ def segmentation():
                     k_utilise = k
                 except Exception as e:
                     erreur = f"Erreur lors de la segmentation : {e}"
+        else:
+            erreur = "Choisis un dossier et une image dans les listes, ou un fichier avec « Choisir un fichier »."
 
     return render_template(
         'segmentation.html',
