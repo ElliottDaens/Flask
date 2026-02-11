@@ -29,8 +29,6 @@ Puis ouvrir **http://127.0.0.1:5001** dans le navigateur.
 - `static/css/style.css` : styles (charte blanc / noir / rouge, dark mode)
 - `static/images/` : photo de profil (`profil.jpg`) uniquement ; la galerie lit les dossiers du disque.
 
-Voir **EXPLICATIONS_PEDAGOGIQUES.md** pour le détail du projet et les rappels de cours.
-
 ## Auteur
 
 Elliott Daens
