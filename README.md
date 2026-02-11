@@ -29,7 +29,7 @@ Puis ouvrir **http://127.0.0.1:5001** dans le navigateur.
 - `templates/` : base.html, index.html, galerie.html, segmentation.html
 - `static/css/style.css` : styles (charte blanc / noir / **violets**, dark mode, animations)
 - `static/images/` : photo de profil (`profil.jpg`) ; galerie et segmentation lisent les dossiers du disque
-- `static/segmented/` : images segmentées générées (ignoré par git)
+- Les images segmentées ne sont pas enregistrées : servies depuis un cache mémoire puis jetées
 - `static/uploads/` : images uploadées depuis la page Segmentation (ignoré par git)
 
 ## Auteur

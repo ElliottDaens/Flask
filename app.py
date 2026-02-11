@@ -4,6 +4,7 @@ Application Flask : site perso + galerie type explorateur (scan du PC) + segment
 Chaque utilisateur qui lance le site voit les dossiers et photos sur sa propre machine.
 """
 
+import io
 import os
 import time
 import uuid
@@ -16,10 +17,14 @@ from sklearn.cluster import KMeans
 
 app = Flask(__name__)
 
-# Dossiers pour la segmentation (sous static/)
-SEGMENTED_DIR = os.path.join(os.path.dirname(__file__), 'static', 'segmented')
+# Dossier uploads uniquement (les images segmentées ne sont plus enregistrées sur disque)
 UPLOADS_DIR = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 MAX_SIZE_SEGMENTATION = 800  # taille max (côté) pour accélérer le K-means
+
+# Cache en mémoire des images segmentées (segment_id -> bytes PNG), max 10 entrées
+_SEGMENT_CACHE = {}
+_SEGMENT_CACHE_ORDER = []
+_SEGMENT_CACHE_MAX = 10
 
 # Racine du scan : dossier utilisateur par défaut.
 RACINE_SCAN = os.path.expanduser("~")
@@ -142,9 +147,9 @@ def get_dossiers_avec_photos(use_cache=True):
 def segmenter_image(chemin_absolu, k, max_size=MAX_SIZE_SEGMENTATION):
     """
     Segmente une image avec K-means sur les couleurs RGB.
-    Retourne le chemin du fichier segmenté sauvegardé sous static/segmented/.
+    Ne sauvegarde rien sur disque : retourne (segment_id, bytes_png) pour affichage via cache.
     """
-    os.makedirs(SEGMENTED_DIR, exist_ok=True)
+    global _SEGMENT_CACHE, _SEGMENT_CACHE_ORDER
     im = Image.open(chemin_absolu).convert('RGB')
     arr = np.array(im)
     h, w, _ = arr.shape
@@ -157,10 +162,18 @@ def segmenter_image(chemin_absolu, k, max_size=MAX_SIZE_SEGMENTATION):
     kmeans.fit(pixels)
     centres = kmeans.cluster_centers_.round().astype(np.uint8)
     seg = centres[kmeans.labels_].reshape(h, w, 3)
-    nom = f"seg_{uuid.uuid4().hex[:12]}.png"
-    chemin_sortie = os.path.join(SEGMENTED_DIR, nom)
-    Image.fromarray(seg).save(chemin_sortie)
-    return nom
+    img_seg = Image.fromarray(seg)
+    buf = io.BytesIO()
+    img_seg.save(buf, format='PNG')
+    buf.seek(0)
+    png_bytes = buf.getvalue()
+    segment_id = uuid.uuid4().hex[:16]
+    while len(_SEGMENT_CACHE_ORDER) >= _SEGMENT_CACHE_MAX:
+        old_id = _SEGMENT_CACHE_ORDER.pop(0)
+        _SEGMENT_CACHE.pop(old_id, None)
+    _SEGMENT_CACHE[segment_id] = png_bytes
+    _SEGMENT_CACHE_ORDER.append(segment_id)
+    return segment_id
 
 
 def _url_carte_embed(lat, lon, zoom=17):
@@ -309,9 +322,9 @@ def segmentation():
             chemin_upload = os.path.join(UPLOADS_DIR, nom_upload)
             try:
                 fichier_upload.save(chemin_upload)
-                nom_seg = segmenter_image(chemin_upload, k)
+                segment_id = segmenter_image(chemin_upload, k)
                 result_original_url = url_for('static', filename=f'uploads/{nom_upload}')
-                result_segmentee_url = url_for('static', filename=f'segmented/{nom_seg}')
+                result_segmentee_url = url_for('serve_segmented', segment_id=segment_id)
                 k_utilise = k
             except Exception as e:
                 erreur = f"Erreur lors de la segmentation : {e}"
@@ -328,9 +341,9 @@ def segmentation():
                 erreur = "Image non autorisée ou introuvable."
             else:
                 try:
-                    nom_seg = segmenter_image(chemin_absolu, k)
+                    segment_id = segmenter_image(chemin_absolu, k)
                     result_original_url = url_for('fichier_galerie', chemin_relatif=chemin_relatif)
-                    result_segmentee_url = url_for('static', filename=f'segmented/{nom_seg}')
+                    result_segmentee_url = url_for('serve_segmented', segment_id=segment_id)
                     image_choisie = img_name
                     k_utilise = k
                 except Exception as e:
@@ -348,6 +361,22 @@ def segmentation():
         image_choisie=image_choisie,
         k_utilise=k_utilise,
         erreur=erreur,
+    )
+
+
+# ========== Service image segmentée (mémoire, pas de fichier sur disque) ==========
+@app.route('/segmentation/serve/<segment_id>')
+def serve_segmented(segment_id):
+    """Sert l'image segmentée depuis le cache mémoire. Rien n'est enregistré sur disque."""
+    if not segment_id or len(segment_id) > 32:
+        abort(404)
+    png_bytes = _SEGMENT_CACHE.get(segment_id)
+    if not png_bytes:
+        abort(404)
+    return send_file(
+        io.BytesIO(png_bytes),
+        mimetype='image/png',
+        as_attachment=False,
     )
 
 

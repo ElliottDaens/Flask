@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.0] – 2026-02-11
+
+### Modifié
+- **Segmentation** : les images segmentées ne sont plus enregistrées sur disque. Elles sont servies depuis un cache mémoire (route `/segmentation/serve/<id>`) puis évincées. Plus de dossier `static/segmented/`.
+
 ## [1.2.0] – 2026-02-11
 
 ### Ajouté
